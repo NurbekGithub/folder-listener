@@ -1,0 +1,19 @@
+{
+  "name": "folder-listener",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "chokidar": "^3.0.1",
+    "dialog-node": "^0.2.1",
+    "iconv-lite": "^0.4.24",
+    "mime": "^2.4.4",
+    "socket.io": "^2.2.0"
+  }
+}
