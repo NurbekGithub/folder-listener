@@ -1,4 +1,3 @@
-const cp = require("child_process");
 const path = require("path");
 const fs = require("fs");
 const mime = require("mime");
@@ -7,35 +6,39 @@ const iconvlite = require("iconv-lite");
 const chokidar = require("chokidar");
 const http = require("http").createServer();
 const io = require("socket.io")(http);
+const dialog = require("dialog-node");
 
-const pathToHorusFolder = path.join(
-  process.cwd(),
-  "HorusUVCView_1.2.0.0"
-);
-const pathToHorusConfig = path.join(
-  __dirname,
-  "HorusUVCView_1.2.0.0",
-  "config.ini"
-);
+const pathToConfigFile = path.join(__dirname, "config.txt");
+
+function cleanPath(path) {
+  return path.replace(/(\n|\r|\\)+$/, "").trim();
+}
 
 // =======================================================
 // FIND STILL_PATH TO WATCH
 // =======================================================
+function setStillFolderToWatch(path) {
+  try {
+    fs.writeFileSync(pathToConfigFile, `StillPath=${path}`);
+  } catch (error) {
+    console.error(error);
+    handleError(error);
+  }
+}
 function getStillFolderToWatch() {
   try {
     const configFile = iconvlite.decode(
-      fs.readFileSync(pathToHorusConfig),
+      fs.readFileSync(pathToConfigFile),
       "windows-1251"
     );
-    const stillPath = configFile
-      .split("\n")
-      .find(path => path.startsWith("StillPath"))
-      .split("=")[1]
-      .replace(/(\n|\r|\\)+$/, "").trim();
+    const stillPath = cleanPath(
+      configFile
+        .split("\n")
+        .find(path => path.startsWith("StillPath"))
+        .split("=")[1]
+    );
 
-    return process.env.NODE_ENV === "development"
-      ? "/home/nurbek/Pictures"
-      : stillPath;
+    return stillPath;
   } catch (error) {
     console.error(error);
     handleError(error);
@@ -49,11 +52,16 @@ const stillPath = getStillFolderToWatch();
 http.listen(23955, function() {
   try {
     log("listening on *:23955");
-    launchHorus();
 
-    if (!stillPath) handleError("Still path not found");
-    watchStillPath(stillPath);
-    watchConfigFile();
+    if (stillPath) {
+      watchStillPath(stillPath);
+      watchConfigFile();
+    }
+
+    openDialog(function cb(newStillPath) {
+      watchStillPath(newStillPath);
+      watchConfigFile();
+    });
   } catch (error) {
     console.error(error);
     handleError(error);
@@ -61,14 +69,13 @@ http.listen(23955, function() {
 });
 
 // =======================================================
-// LAUNCH HORUS APP
+// OPEN PATH DIALOG
 // =======================================================
-function launchHorus() {
-  const execCmd = `cd ${pathToHorusFolder} && start HorusUVCView.exe`;
-  cp.exec(execCmd, err => {
-    if (err) {
-      handleError(err);
-    }
+function openDialog(callback) {
+  dialog.entry("msg", "title", 1000, function cb(code, retVal) {
+    const newStillPath = cleanPath(retVal);
+    callback(newStillPath);
+    setStillFolderToWatch(newStillPath);
   });
 }
 
@@ -77,7 +84,7 @@ function launchHorus() {
 // =======================================================
 function watchStillPath(pathToWatch) {
   chokidar
-    .watch(pathToWatch, { ignored: /(^|[\/\\])\../, ignoreInitial: true })
+    .watch(pathToWatch, { ignored: /(^|[/\\])\../, ignoreInitial: true })
     .on("add", path => {
       log("watchStillPath" + ": " + path);
       setTimeout(() => {
@@ -93,9 +100,9 @@ function watchStillPath(pathToWatch) {
 // =======================================================
 // WATCH CONFIG FILE
 // =======================================================
-function watchConfigFile() {
+function watchConfigFile(pathToConfigFile) {
   chokidar
-    .watch(pathToHorusConfig, { ignored: /(^|[\/\\])\../ })
+    .watch(pathToConfigFile, { ignored: /(^|[/\\])\../ })
     .on("change", () => {
       log("watchConfigFile", +": " + "pathToHorusConfig");
       const stillPath = getStillFolderToWatch();
