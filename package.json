@@ -15,5 +15,8 @@
     "iconv-lite": "^0.4.24",
     "mime": "^2.4.4",
     "socket.io": "^2.2.0"
+  },
+  "devDependencies": {
+    "eslint": "^6.3.0"
   }
 }
