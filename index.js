@@ -31,6 +31,7 @@ function getStillFolderToWatch() {
       fs.readFileSync(pathToConfigFile),
       "windows-1251"
     );
+
     const stillPath = cleanPath(
       configFile
         .split("\n")
@@ -56,6 +57,7 @@ http.listen(23955, function() {
     if (stillPath) {
       watchStillPath(stillPath);
       watchConfigFile();
+      return;
     }
 
     openDialog(function cb(newStillPath) {
@@ -121,6 +123,7 @@ function handleError(text) {
 }
 
 function log(text, cb) {
+  console.log(text);
   const stream = fs.createWriteStream("logs.txt", { flags: "a" });
   stream.write(new Date() + "\r\n" + text + "\r\n");
   stream.end();
